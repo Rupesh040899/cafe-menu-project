@@ -29,19 +29,49 @@ export default function App() {
   const [placing, setPlacing] = useState(false);
   const [successOrder, setSuccessOrder] = useState(null);
 
-  async function loadMenu() {
-    setLoading(true);
-    try {
-      const response = await fetch(`${API_URL}/menu`);
-      if (!response.ok) throw new Error("Could not load menu");
-      const result = await response.json();
-      setMenu(result.data || []);
-      setApiError("");
-    } catch {
-      setMenu(fallbackItems);
-      setApiError("Showing sample menu. Start the backend and connect MongoDB to load your live menu.");
-    } finally { setLoading(false); }
+
+async function loadMenu() {
+  setLoading(true);
+
+  const menuUrl = `${API_URL.replace(/\/+$/, "")}/menu`;
+
+  try {
+    console.log("Menu API URL:", menuUrl);
+
+    const response = await fetch(menuUrl);
+
+    console.log("Menu API status:", response.status);
+
+    const result = await response.json();
+
+    console.log("Menu API response:", result);
+
+    if (!response.ok) {
+      throw new Error(
+        `API Error ${response.status}: ${result.message || "Request failed"}`
+      );
+    }
+
+    if (!Array.isArray(result.data)) {
+      throw new Error("Invalid API response: menu data is not an array");
+    }
+
+    setMenu(result.data);
+    setApiError("");
+
+  } catch (error) {
+    console.error("Menu loading failed:", error);
+
+    setMenu(fallbackItems);
+    setApiError(
+      `Live menu failed. URL: ${menuUrl}. Error: ${error.message}`
+    );
+
+  } finally {
+    setLoading(false);
   }
+}
+
   useEffect(() => { loadMenu(); }, []);
 
   const categories = useMemo(() => ["All", ...new Set(menu.map(item => item.category))], [menu]);
